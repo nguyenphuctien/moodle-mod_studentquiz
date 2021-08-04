@@ -26,6 +26,7 @@ namespace mod_studentquiz;
 
 defined('MOODLE_INTERNAL') || die();
 
+use core_courseformat\output\local\state\cm;
 use external_value;
 use external_single_structure;
 use mod_studentquiz\commentarea\comment;
@@ -409,5 +410,20 @@ style5 = html';
         }
 
         return false;
+    }
+
+    /**
+     * We do not support 'All participants' option in group mode. If the group = 0 or not set or set to an invalid group,
+     * we force to chose first available group by default.
+     *
+     * @param stdClass $cm Course module class.
+     */
+    public static function set_default_group($cm) {
+        global $USER;
+
+        $allowedgroups = groups_get_activity_allowed_groups($cm, $USER->id);
+        if ($allowedgroups && !groups_get_activity_group($cm, true, $allowedgroups)) {
+            $_GET['group'] = reset($allowedgroups)->id;
+        }
     }
 }
