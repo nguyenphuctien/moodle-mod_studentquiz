@@ -464,13 +464,34 @@ class mod_studentquiz_renderer extends plugin_renderer_base {
      * @return string
      */
     public function render_comment_column($question, $rowclasses) {
-        $output = '';
-        if (!empty($question->comment)) {
-            $output .= $question->comment;
+        $context = [];
+
+        if (!empty($question->publiccomment)) {
+            $context['publiccomment'] = $question->publiccomment;
+            if ($question->lasteditpubliccomment > $question->lastreadpubliccomment) {
+                $context['unreadpubliccomment'] = true;
+            }
         } else {
-            $output .= get_string('no_comment', 'studentquiz');
+            $context['publiccomment'] = get_string('no_comment', 'studentquiz');
         }
-        return $output;
+
+        if (utils::can_view_private_comment($this->page->cm->id, $question)) {
+            if (!empty($question->privatecomment)) {
+                $context['privatecomment'] = $question->privatecomment;
+                if ($question->lasteditprivatecomment > $question->lastreadprivatecomment) {
+                    $context['unreadprivatecomment'] = true;
+                }
+            } else {
+                $context['privatecomment'] = get_string('no_comment', 'studentquiz');
+            }
+        }
+
+        $context['publiccommenttitle'] = get_string('commentcolumnexplainpublic', 'studentquiz');
+        $context['privatecommenttitle'] = get_string('commentcolumnexplainboth', 'studentquiz');
+        $context['columncontentdelimiter'] = get_string('columncontentdelimiter', 'studentquiz');
+        $context['exclamationmark'] = get_string('unreadcommentexclamationmark', 'studentquiz');
+
+        return $this->render_from_template('mod_studentquiz/questionbank_comment_column', $context);
     }
 
     /**
@@ -582,7 +603,7 @@ class mod_studentquiz_renderer extends plugin_renderer_base {
 
         $output .= '&nbsp;|&nbsp;';
 
-        if ($question->mylastanswercorrect !== null) {
+        if (!empty($question->myattempts) && $question->mylastanswercorrect !== null) {
             // TODO: Refactor magic constant.
             if ($question->mylastanswercorrect == '1') {
                 $output .= get_string('lastattempt_right', 'studentquiz');

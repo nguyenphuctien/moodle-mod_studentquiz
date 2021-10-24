@@ -597,6 +597,44 @@ style5 = html';
     }
 
     /**
+    * Get studentquiz progress.
+    *
+    * @param int $qid Question Id.
+    * @param int $userid User Id.
+    * @param int $studentquizid Studentquiz Id.
+    * @return \stdClass Studentquiz progress object.
+    */
+    public static function get_studentquiz_progress($qid, $userid, $studentquizid): \stdClass {
+        global $DB;
+
+        $studentquizprogress = $DB->get_record('studentquiz_progress', array('questionid' => $qid,
+            'userid' => $userid, 'studentquizid' => $studentquizid));
+        if ($studentquizprogress == false) {
+            $studentquizprogress = mod_studentquiz_get_studenquiz_progress_class($qid, $userid, $studentquizid);
+        }
+
+        return $studentquizprogress;
+    }
+
+    /**
+     * Update studentquiz progress object into db.
+     *
+     * @param \stdClass $studentquizprogress The studentquiz progress object.
+     * @return bool|int
+     */
+    public static function update_studentquiz_progress(\stdClass $studentquizprogress) {
+        global $DB;
+
+        if (!empty($studentquizprogress->id)) {
+            $result = $DB->update_record('studentquiz_progress', $studentquizprogress);
+        } else {
+            $result = $studentquizprogress->id = $DB->insert_record('studentquiz_progress', $studentquizprogress, true);
+        }
+
+        return $result;
+    }
+
+    /**
      * Saving the action change state.
      *
      * @param int $questionid Id of question
