@@ -43,11 +43,9 @@ Feature: As a user I can add private comment and view private comment in my own 
     And I switch to the main window
     And I log out
     And I am on the "StudentQuiz 1" "mod_studentquiz > View" page logged in as "teacher1"
-    # Comment column should show "n.a. | 1!" in comment column.
-    And "//span[contains(@class, 'number-public-comments') and text() = 'n.a.']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark public-comment')]" "xpath" should not exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'number-private-comments') and text() = '1']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark private-comment')]" "xpath" should exist in the "Question 1" "table_row"
+    # Comment column should show n.a. public comments, 1 private comment (including unread) in comment column.
+    And "//span[contains(@class, 'public-comment badge badge-secondary') and contains(text(), 'n.a.')]" "xpath" should exist in the "Question 1" "table_row"
+    And "//span[contains(@class, 'private-comment badge badge-primary') and contains(text(), '1')]" "xpath" should exist in the "Question 1" "table_row"
     And I choose "Preview" action for "Question 1" in the question bank
     And I switch to "questionpreview" window
     And I should see "Submitted for approval"
@@ -56,11 +54,9 @@ Feature: As a user I can add private comment and view private comment in my own 
     And I switch to the main window
     And I log out
     And I am on the "StudentQuiz 1" "mod_studentquiz > View" page logged in as "student1"
-    # Comment column should show "n.a. | 2!" in comment column.
-    And "//span[contains(@class, 'number-public-comments') and text() = 'n.a.']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark public-comment')]" "xpath" should not exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'number-private-comments') and text() = '2']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark private-comment')]" "xpath" should exist in the "Question 1" "table_row"
+    # Comment column should show n.a. public comments, 2 private comments (including unread) in comment column.
+    And "//span[contains(@class, 'public-comment badge badge-secondary') and contains(text(), 'n.a.')]" "xpath" should exist in the "Question 1" "table_row"
+    And "//span[contains(@class, 'private-comment badge badge-primary') and contains(text(), '2')]" "xpath" should exist in the "Question 1" "table_row"
     And I choose "Preview" action for "Question 1" in the question bank
     And I switch to "questionpreview" window
     And I should see "Rating and public commenting are not available for your own question in Preview mode."
@@ -70,11 +66,9 @@ Feature: As a user I can add private comment and view private comment in my own 
     And I press "Add comment"
     And I switch to the main window
     And I reload the page
-    # Comment column should show "n.a. | 3" in comment column.
-    And "//span[contains(@class, 'number-public-comments') and text() = 'n.a.']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark public-comment')]" "xpath" should not exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'number-private-comments') and text() = '3']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark private-comment')]" "xpath" should not exist in the "Question 1" "table_row"
+    # Comment column should show n.a. public comments, 3 private comments in comment column.
+    And "//span[contains(@class, 'public-comment badge badge-secondary') and contains(text(), 'n.a.')]" "xpath" should exist in the "Question 1" "table_row"
+    And "//span[contains(@class, 'private-comment badge badge-secondary') and contains(text(), '3')]" "xpath" should exist in the "Question 1" "table_row"
     And I log out
     And I am on the "StudentQuiz 1" "mod_studentquiz > View" page logged in as "teacher1"
     And I choose "Preview" action for "Question 1" in the question bank
@@ -94,11 +88,9 @@ Feature: As a user I can add private comment and view private comment in my own 
     And I switch to the main window
     And I log out
     And I am on the "StudentQuiz 1" "mod_studentquiz > View" page logged in as "student2"
-    # Comment column should show "n.a." in comment column.
-    And "//span[contains(@class, 'number-public-comments') and text() = 'n.a.']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark public-comment')]" "xpath" should not exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'number-private-comments')]" "xpath" should not exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark private-comment')]" "xpath" should not exist in the "Question 1" "table_row"
+    # Comment column should show n.a. public comments in comment column.
+    And "//span[contains(@class, 'public-comment badge badge-secondary') and contains(text(), 'n.a.')]" "xpath" should exist in the "Question 1" "table_row"
+    And "//span[contains(@class, 'private-comment')]" "xpath" should not exist in the "Question 1" "table_row"
     And I click on "Start Quiz" "button"
     And I set the field "True" to "1"
     And I press "Check"
@@ -106,18 +98,14 @@ Feature: As a user I can add private comment and view private comment in my own 
     And I press "Add comment"
     And I log out
     And I am on the "StudentQuiz 1" "mod_studentquiz > View" page logged in as "student1"
-    # Comment column should show "1! | 4" in comment column.
-    And "//span[contains(@class, 'number-public-comments') and text() = '1']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark public-comment')]" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'number-private-comments') and text() = '4']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark private-comment')]" "xpath" should not exist in the "Question 1" "table_row"
+    # Comment column should show 1 public comment (including unread), 4 private comments in comment column.
+    And "//span[contains(@class, 'public-comment badge badge-primary') and contains(text(), '1')]" "xpath" should exist in the "Question 1" "table_row"
+    And "//span[contains(@class, 'private-comment badge badge-secondary') and contains(text(), '4')]" "xpath" should exist in the "Question 1" "table_row"
     And I choose "Preview" action for "Question 1" in the question bank
     And I switch to "questionpreview" window
     And I click on "Public comments" "link"
     And I switch to the main window
     And I reload the page
-    # Comment column should show "1 | 4" in comment column.
-    And "//span[contains(@class, 'number-public-comments') and text() = '1']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark public-comment')]" "xpath" should not exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'number-private-comments') and text() = '4']" "xpath" should exist in the "Question 1" "table_row"
-    And "//span[contains(@class, 'exclamation-mark private-comment')]" "xpath" should not exist in the "Question 1" "table_row"
+    # Comment column should show 1 public comment, 4 private comments in comment column.
+    And "//span[contains(@class, 'public-comment badge badge-secondary') and contains(text(), '1')]" "xpath" should exist in the "Question 1" "table_row"
+    And "//span[contains(@class, 'private-comment badge badge-secondary') and contains(text(), '4')]" "xpath" should exist in the "Question 1" "table_row"

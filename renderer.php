@@ -464,34 +464,50 @@ class mod_studentquiz_renderer extends plugin_renderer_base {
      * @return string
      */
     public function render_comment_column($question, $rowclasses) {
-        $context = [];
+        $publiccontext = [
+            'tooltiptext' => get_string('commentcolumnexplainpublic', 'studentquiz'),
+            'sronlytext' => get_string('public', 'studentquiz') . ' ' .
+                utils::get_comment_plural_text($question->publiccomment),
+            'class' => 'public-comment'
+        ];
 
         if (!empty($question->publiccomment)) {
-            $context['publiccomment'] = $question->publiccomment;
+            $publiccontext['numberofcomments'] = $question->publiccomment;
             if ($question->lasteditpubliccomment > $question->lastreadpubliccomment) {
-                $context['unreadpubliccomment'] = true;
+                $publiccontext['sronlytext'] .= get_string('includingunread', 'studentquiz');
+                $publiccontext['unread'] = true;
             }
         } else {
-            $context['publiccomment'] = get_string('no_comment', 'studentquiz');
+            $publiccontext['numberofcomments'] = get_string('no_comment', 'studentquiz');
         }
+
+        $publiccomment = $this->render_from_template('mod_studentquiz/questionbank_comment_badge', $publiccontext);
+
+        $privatecomment = '';
 
         if (utils::can_view_private_comment($this->page->cm->id, $question)) {
+            $privatecontext = [
+                'tooltiptext' => get_string('commentcolumnexplainprivate', 'studentquiz'),
+                'sronlytext' => get_string('private', 'studentquiz') . ' ' .
+                    utils::get_comment_plural_text($question->privatecomment),
+                'class' => 'private-comment'
+            ];
+
             if (!empty($question->privatecomment)) {
-                $context['privatecomment'] = $question->privatecomment;
+                $privatecontext['numberofcomments'] = $question->privatecomment;
                 if ($question->lasteditprivatecomment > $question->lastreadprivatecomment) {
-                    $context['unreadprivatecomment'] = true;
+                    $privatecontext['sronlytext'] .= get_string('includingunread', 'studentquiz');
+                    $privatecontext['unread'] = true;
                 }
             } else {
-                $context['privatecomment'] = get_string('no_comment', 'studentquiz');
+                $privatecontext['numberofcomments'] = get_string('no_comment', 'studentquiz');
             }
+
+            $privatecomment =  '&nbsp;' . $this->render_from_template('mod_studentquiz/questionbank_comment_badge',
+                $privatecontext);
         }
 
-        $context['publiccommenttitle'] = get_string('commentcolumnexplainpublic', 'studentquiz');
-        $context['privatecommenttitle'] = get_string('commentcolumnexplainboth', 'studentquiz');
-        $context['columncontentdelimiter'] = get_string('columncontentdelimiter', 'studentquiz');
-        $context['exclamationmark'] = get_string('unreadcommentexclamationmark', 'studentquiz');
-
-        return $this->render_from_template('mod_studentquiz/questionbank_comment_column', $context);
+        return $publiccomment . $privatecomment;
     }
 
     /**

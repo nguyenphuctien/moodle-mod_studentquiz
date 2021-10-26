@@ -597,13 +597,13 @@ style5 = html';
     }
 
     /**
-    * Get studentquiz progress.
-    *
-    * @param int $qid Question Id.
-    * @param int $userid User Id.
-    * @param int $studentquizid Studentquiz Id.
-    * @return \stdClass Studentquiz progress object.
-    */
+     * Get studentquiz progress.
+     *
+     * @param int $qid Question Id.
+     * @param int $userid User Id.
+     * @param int $studentquizid Studentquiz Id.
+     * @return \stdClass Studentquiz progress object.
+     */
     public static function get_studentquiz_progress($qid, $userid, $studentquizid): \stdClass {
         global $DB;
 
@@ -758,5 +758,19 @@ style5 = html';
         $ishidden = $DB->get_field('studentquiz_question', 'hidden', ['questionid' => $questionid]);
 
         return $ishidden == self::HIDDEN;
+    }
+
+    /**
+     * Return 'comment' or 'comments' base on the $numberofcomments.
+     *
+     * @param int $numberofcomments The studentquiz progress object.
+     * @return string
+     */
+    public static function get_comment_plural_text($numberofcomments) {
+        if (isset($numberofcomments) && $numberofcomments == 1) {
+            return get_string('comment', 'studentquiz');
+        } else {
+            return get_string('commentplural', 'studentquiz');
+        }
     }
 }
