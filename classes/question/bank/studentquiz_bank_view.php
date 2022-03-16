@@ -25,8 +25,11 @@
 
 namespace mod_studentquiz\question\bank;
 
+use core_question\local\bank\question_version_status;
+use core_question\local\bank\view;
 use mod_studentquiz\local\studentquiz_helper;
 use mod_studentquiz\utils;
+use qbank_columnsortorder\column_manager;
 use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
@@ -58,7 +61,7 @@ require_once(__DIR__ . '/sq_delete_action_column.php');
  * @copyright  2017 HSR (http://www.hsr.ch)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class studentquiz_bank_view extends \core_question\bank\view {
+class studentquiz_bank_view extends view {
     /**
      * @var stdClass filtered questions from database
      */
@@ -158,7 +161,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
     }
 
     /**
-     * Shows the question bank editing interface.
+     * Shows the question bank interface.
      *
      * The function also processes a number of actions:
      *
@@ -167,21 +170,23 @@ class studentquiz_bank_view extends \core_question\bank\view {
      * deleteselected Deletes the selected questions from the category
      * Other actions:
      * category      Chooses the category
-     * displayoptions Sets display options
+     * params: $tabname question bank edit tab name, for permission checking
+     * $pagevars current list of page variables
      *
      * @param string $tabname
-     * @param int $page
-     * @param int $perpage
-     * @param bool $cat
-     * @param bool $recurse
-     * @param bool $showhidden
-     * @param bool $showquestiontext
-     * @param array $tagids
-     * @return html output
+     * @param array $pagevars
      */
-    public function display($tabname, $page, $perpage, $cat,
-                            $recurse, $showhidden, $showquestiontext, $tagids = []) {
-        global $USER;
+    public function display($pagevars, $tabname): void {
+        $page = $pagevars['qpage'];
+        $perpage = $pagevars['qperpage'];
+        $cat = $pagevars['cat'];
+        $recurse = $pagevars['recurse'];
+        $showhidden = $pagevars['showhidden'];
+        $showquestiontext = $pagevars['qbshowtext'];
+        $tagids = [];
+        if (!empty($pagevars['qtagids'])) {
+            $tagids = $pagevars['qtagids'];
+        }
         $output = '';
 
         $this->build_query();
@@ -216,7 +221,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
                 $output .= $this->renderer->render_no_questions_notification($this->isfilteractive);
             }
         }
-        return $output;
+        echo $output;
     }
 
     /**
@@ -224,7 +229,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
      *
      * Check for commands on this page and modify variables as necessary.
      */
-    public function process_actions() {
+    public function process_actions(): void {
         global $DB;
         // This code is called by both POST forms and GET links, so cannot use data_submitted.
         $rawquestionids = mod_studentquiz_helper_get_ids_by_raw_submit($_REQUEST);
@@ -401,7 +406,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
      * Confirmation on process action if needed
      * @return boolean
      */
-    public function process_actions_needing_ui() {
+    public function process_actions_needing_ui(): bool {
         global $DB, $OUTPUT;
 
         $context = \context_module::instance($this->studentquiz->coursemodule);
@@ -501,7 +506,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
     /**
      * Override base default sort
      */
-    protected function default_sort() {
+    protected function default_sort(): array {
         return array();
     }
 
@@ -509,14 +514,43 @@ class studentquiz_bank_view extends \core_question\bank\view {
      * Create the SQL query to retrieve the indicated questions, based on
      * \core_question\bank\search\condition filters.
      */
-    protected function build_query() {
+    protected function build_query(): void {
         global $CFG;
 
         // Hard coded setup.
-        $params = array();
-        $joins = array();
-        $fields = array('q.hidden', 'q.category', 'q.timecreated', 'q.createdby');
-        $tests = array('q.parent = 0', 'q.hidden = 0');
+        $stateready = question_version_status::QUESTION_STATUS_READY;
+        $params = [];
+        $joins = [
+            'qv' => 'JOIN {question_versions} qv ON qv.questionid = q.id',
+            'qbe' => 'JOIN {question_bank_entries} qbe on qbe.id = qv.questionbankentryid',
+            'qc' => 'JOIN {question_categories} qc ON qc.id = qbe.questioncategoryid',
+            'qr' => "JOIN {question_references} qr ON qr.questionbankentryid = qbe.id",
+            'sqq' => 'JOIN {studentquiz_question} sqq ON sqq.id = qr.itemid'
+        ];
+        $fields = [
+            'qv.status',
+            'qc.id categoryid',
+            'qv.version',
+            'qv.id versionid',
+            'qbe.id questionbankentryid',
+            'q.timecreated',
+            'q.createdby'
+        ];
+
+        // Build the where clause.
+        $latestversion = 'qv.version = (SELECT MAX(v.version)
+                                          FROM {question_versions} v
+                                          JOIN {question_bank_entries} be
+                                            ON be.id = v.questionbankentryid
+                                         WHERE be.id = qbe.id)';
+        $tests = [
+            'q.parent = 0',
+            "qv.status = '$stateready'",
+            "qr.component = 'mod_studentquiz'",
+            "qr.questionarea = 'studentquiz_question'",
+            $latestversion
+        ];
+
         foreach ($this->requiredcolumns as $column) {
             $extrajoins = $column->get_extra_joins();
             foreach ($extrajoins as $prefix => $join) {
@@ -546,7 +580,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
         }
 
         if (isset($CFG->questionbankcolumns)) {
-            array_unshift($sorts, 'sqh.pinned DESC');
+            array_unshift($sorts, 'sqq.pinned DESC');
         }
 
         // Build the where clause and load params from search conditions.
@@ -579,7 +613,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
      * @param int $categoryid question category
      * @param bool $canadd capability state
      */
-    public function create_new_question_form($categoryid, $canadd) {
+    public function create_new_question_form($categoryid, $canadd): void {
         global $OUTPUT;
 
         $output = '';
@@ -618,27 +652,21 @@ class studentquiz_bank_view extends \core_question\bank\view {
         } else {
             $output .= get_string('nopermissionadd', 'question');
         }
-        return $output;
+        echo $output;
     }
 
     /**
      * Prints the table of questions in a category with interactions
      *
-     * @param array $contexts Not used!
-     * @param moodle_url $pageurl The URL to reload this page.
-     * @param string $categoryandcontext 'categoryID,contextID'.
-     * @param stdClass $cm Not used!
-     * @param bool|int $recurse Whether to include subcategories.
-     * @param int $page The number of the page to be displayed
-     * @param int $perpage Number of questions to show per page
-     * @param bool $showhidden whether deleted questions should be displayed.
-     * @param bool $showquestiontext whether the text of each question should be shown in the list. Deprecated.
-     * @param array $addcontexts contexts where the user is allowed to add new questions.
-     * @return html output
+     * @param \moodle_url $pageurl     The URL to reload this page.
+     * @param string     $categoryandcontext 'categoryID,contextID'.
+     * @param int        $recurse     Whether to include subcategories.
+     * @param int        $page        The number of the page to be displayed
+     * @param int        $perpage     Number of questions to show per page
+     * @param array      $addcontexts contexts where the user is allowed to add new questions.
      */
-    protected function display_question_list($contexts, $pageurl, $categoryandcontext,
-                                             $cm = null, $recurse=1, $page=0, $perpage=100, $showhidden=false,
-                                             $showquestiontext = false, $addcontexts = array()) {
+    protected function display_question_list($pageurl, $categoryandcontext, $recurse = 1, $page = 0,
+             $perpage = 100, $addcontexts = []): void {
         $output = '';
         $category = $this->get_current_category($categoryandcontext);
 
@@ -667,7 +695,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
 
         $output .= $this->renderer->display_javascript_snippet();
 
-        return $output;
+        echo $output;
     }
 
     /**
@@ -700,7 +728,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
      * @param int $rowcount Row index
      * @return array Classes of row
      */
-    protected function get_row_classes($question, $rowcount) {
+    protected function get_row_classes($question, $rowcount): array {
         $classes = parent::get_row_classes($question, $rowcount);
         if (($key = array_search('dimmed_text', $classes)) !== false) {
             unset($classes[$key]);
@@ -941,7 +969,7 @@ class studentquiz_bank_view extends \core_question\bank\view {
      * @param string $sort the sort parameter to process.
      * @return array array($colname, $subsort).
      */
-    protected function parse_subsort($sort) {
+    protected function parse_subsort($sort): array {
         // When we sort by public/private comments and turn off the setting studentquiz | privatecomment,
         // the parse_subsort function will throw exception. We should redirect to the base_url after cleaning all sort params.
         $showprivatecomment = $this->studentquiz->privatecommenting;
@@ -955,5 +983,73 @@ class studentquiz_bank_view extends \core_question\bank\view {
         }
 
         return parent::parse_subsort($sort);
+    }
+    /**
+     * Get the list of qbank plugins with available objects for features.
+     *
+     * @return array
+     */
+    protected function get_question_bank_plugins(): array {
+        $questionbankclasscolumns = [];
+        $newpluginclasscolumns = [];
+        $corequestionbankcolumns = $this->get_default_columns();
+        if (question_get_display_preference('qbshowtext', 0, PARAM_BOOL, new \moodle_url(''))) {
+            $corequestionbankcolumns[] = 'question_text_row';
+        }
+
+        foreach ($corequestionbankcolumns as $fullname) {
+            $shortname = $fullname;
+            if (class_exists('core_question\\local\\bank\\' . $fullname)) {
+                $fullname = 'core_question\\local\\bank\\' . $fullname;
+                $questionbankclasscolumns[$shortname] = new $fullname($this);
+            } elseif (class_exists($fullname)) {
+                $questionbankclasscolumns[$shortname] = new $fullname($this);
+            } else {
+                $questionbankclasscolumns[$shortname] = '';
+            }
+        }
+
+        // New plugins added at the end of the array, will change in sorting feature.
+        foreach ($newpluginclasscolumns as $key => $newpluginclasscolumn) {
+            $questionbankclasscolumns[$key] = $newpluginclasscolumn;
+        }
+
+        // Check if qbank_columnsortorder is enabled.
+        if (array_key_exists('columnsortorder', \core_plugin_manager::instance()->get_enabled_plugins('qbank'))) {
+            $columnorder = new column_manager();
+            $questionbankclasscolumns = $columnorder->get_sorted_columns($questionbankclasscolumns);
+        }
+
+        // Mitigate the error in case of any regression.
+        foreach ($questionbankclasscolumns as $shortname => $questionbankclasscolumn) {
+            if (empty($questionbankclasscolumn)) {
+                unset($questionbankclasscolumns[$shortname]);
+            }
+        }
+
+        return $questionbankclasscolumns;
+    }
+
+    public function get_default_columns(): array {
+        return [
+            'checkbox_column',
+            'question_type_column',
+            'mod_studentquiz\\bank\\state_column',
+            'mod_studentquiz\\bank\\state_pin_column',
+            'mod_studentquiz\\bank\\question_name_column',
+            'mod_studentquiz\\bank\\question_text_row',
+            'mod_studentquiz\\bank\\sq_edit_action_column',
+            'mod_studentquiz\\bank\\preview_column',
+            'mod_studentquiz\\bank\\sq_delete_action_column',
+            'mod_studentquiz\\bank\\sq_hidden_action_column',
+            'mod_studentquiz\\bank\\sq_pin_action_column',
+            'mod_studentquiz\\bank\\sq_edit_menu_column',
+            'mod_studentquiz\\bank\\anonym_creator_name_column',
+            'mod_studentquiz\\bank\\tag_column',
+            'mod_studentquiz\\bank\\attempts_column',
+            'mod_studentquiz\\bank\\difficulty_level_column',
+            'mod_studentquiz\\bank\\rate_column',
+            'mod_studentquiz\\bank\\comment_column'
+        ];
     }
 }

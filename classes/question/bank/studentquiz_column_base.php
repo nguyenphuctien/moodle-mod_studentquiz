@@ -16,6 +16,8 @@
 
 namespace mod_studentquiz\bank;
 
+use core_question\local\bank\column_base;
+
 /**
  * Represent studentquiz column base in studentquiz_bank_view
  *
@@ -23,7 +25,7 @@ namespace mod_studentquiz\bank;
  * @copyright 2021 The Open University.
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-abstract class studentquiz_column_base extends \core_question\bank\column_base {
+abstract class studentquiz_column_base extends column_base {
 
     /** @var array Extra class names to this column. */
     protected $extraclasses = [];
@@ -34,7 +36,7 @@ abstract class studentquiz_column_base extends \core_question\bank\column_base {
      * @param object $question The row from the $question table, augmented with extra information.
      * @param string $rowclasses CSS class names that should be applied to this row of output.
      */
-    public function display($question, $rowclasses) {
+    public function display($question, $rowclasses):void {
         $this->extraclasses = [];
         if (!empty($question->sq_hidden)) {
             $this->extraclasses[] = 'dimmed_text';

@@ -16,7 +16,7 @@
 
 namespace mod_studentquiz\bank;
 
-use core_question\bank\edit_action_column;
+use core_question\local\bank\menu_action_column_base;
 use mod_studentquiz\local\studentquiz_helper;
 
 /**
@@ -27,7 +27,51 @@ use mod_studentquiz\local\studentquiz_helper;
  * @copyright 2019 HSR (http://www.hsr.ch)
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class sq_edit_action_column extends edit_action_column {
+class sq_edit_action_column extends menu_action_column_base {
+    /**
+     * Contains the string.
+     * @var string
+     */
+    protected $stredit;
+
+    /**
+     * Contains the string.
+     * @var string
+     */
+    protected $strview;
+
+    /**
+     * Contains the url of the edit question page.
+     * @var moodle_url|string
+     */
+    public $editquestionurl;
+
+    public function init(): void {
+        parent::init();
+        $this->stredit = get_string('editquestion', 'question');
+        $this->strview = get_string('view');
+        $this->editquestionurl = new \moodle_url('/question/bank/editquestion/question.php',
+            array('returnurl' => $this->qbank->returnurl));
+        if ($this->qbank->cm !== null) {
+            $this->editquestionurl->param('cmid', $this->qbank->cm->id);
+        } else {
+            $this->editquestionurl->param('courseid', $this->qbank->course->id);
+        }
+    }
+
+    public function get_name() {
+        return 'editaction';
+    }
+
+    /**
+     * Get the URL for editing a question as a link.
+     *
+     * @param int $questionid the question id.
+     * @return moodle_url the URL, HTML-escaped.
+     */
+    public function edit_question_moodle_url($questionid): moodle_url {
+        return new moodle_url($this->editquestionurl, ['id' => $questionid]);
+    }
 
     /**
      * Override method to get url and label for edit action of the studentquiz.
@@ -46,7 +90,20 @@ class sq_edit_action_column extends edit_action_column {
             return [null, null, null];
         }
 
-        return parent::get_url_icon_and_label($question);
+        if (!\question_bank::is_qtype_installed($question->qtype)) {
+            // It sometimes happens that people end up with junk questions
+            // in their question bank of a type that is no longer installed.
+            // We cannot do most actions on them, because that leads to errors.
+            return [null, null, null];
+        }
+
+        if (question_has_capability_on($question, 'edit')) {
+            return [$this->edit_question_moodle_url($question->id), 't/edit', $this->stredit];
+        } else if (question_has_capability_on($question, 'view')) {
+            return [$this->edit_question_moodle_url($question->id), 'i/info', $this->strview];
+        } else {
+            return [null, null, null];
+        }
     }
 
 }

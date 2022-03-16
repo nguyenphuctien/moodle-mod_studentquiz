@@ -151,10 +151,10 @@ class mod_studentquiz_renderer extends plugin_renderer_base {
      * @return block_content
      */
     public function render_ranking_block($report) {
-        $ranking = $report->get_user_ranking_table(0, 10);
-        $currentuserid = $report->get_user_id();
-        $anonymname = get_string('creator_anonym_fullname', 'studentquiz');
-        $anonymise = $report->is_anonymized();
+//        $ranking = $report->get_user_ranking_table(0, 10);
+//        $currentuserid = $report->get_user_id();
+//        $anonymname = get_string('creator_anonym_fullname', 'studentquiz');
+//        $anonymise = $report->is_anonymized();
         $studentquiz = mod_studentquiz_load_studentquiz($report->get_cm_id(), $this->page->context->id);
         // We need to check this instead of using $report->is_anonymized()
         // because we want to apply this text regardless of role.
@@ -162,24 +162,24 @@ class mod_studentquiz_renderer extends plugin_renderer_base {
                 get_string('ranking_block_title', 'studentquiz');
         $cmid = $report->get_cm_id();
         $rows = array();
-        $rank = 1;
-        foreach ($ranking as $row) {
-            if ($currentuserid == $row->userid || !$anonymise) {
-                $author = user_get_users_by_id(array($row->userid))[$row->userid];
-                $name = html_writer::link(utils::get_user_profile_url($author->id, $this->page->course->id), fullname($author));
-            } else {
-                $name = $anonymname;
-            }
-            $rankname = \html_writer::div($rank . '. ' . $name);
-            $rows[] = \html_writer::div($rankname .
-                html_writer::span(html_writer::tag('b' , round($row->points)),
-                    '', array('style' => 'float: right;')));
-            $rank++;
-            if ($rank > 10) {
-                break;
-            }
-        }
-        $ranking->close();
+//        $rank = 1;
+//        foreach ($ranking as $row) {
+//            if ($currentuserid == $row->userid || !$anonymise) {
+//                $author = user_get_users_by_id(array($row->userid))[$row->userid];
+//                $name = html_writer::link(utils::get_user_profile_url($author->id, $this->page->course->id), fullname($author));
+//            } else {
+//                $name = $anonymname;
+//            }
+//            $rankname = \html_writer::div($rank . '. ' . $name);
+//            $rows[] = \html_writer::div($rankname .
+//                html_writer::span(html_writer::tag('b' , round($row->points)),
+//                    '', array('style' => 'float: right;')));
+//            $rank++;
+//            if ($rank > 10) {
+//                break;
+//            }
+//        }
+//        $ranking->close();
         $bc = new block_contents();
         $bc->attributes['id'] = 'mod_studentquiz_rankingblock';
         $bc->attributes['role'] = 'navigation';

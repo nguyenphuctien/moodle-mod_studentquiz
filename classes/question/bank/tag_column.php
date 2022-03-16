@@ -24,9 +24,6 @@
 
 namespace mod_studentquiz\bank;
 
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot . '/mod/studentquiz/classes/local/db.php');
 use mod_studentquiz\local\db;
 
 /**
@@ -50,9 +47,9 @@ class tag_column extends studentquiz_column_base {
     /**
      * Initialise Parameters for join
      */
-    protected function init() {
+    protected function init(): void {
 
-        global $DB, $PAGE;
+        global $PAGE;
 
         // Build context and categoryid here for use later.
         $context = $this->qbank->get_most_specific_context();
@@ -72,7 +69,7 @@ class tag_column extends studentquiz_column_base {
      * Get column title
      * @return string translated title
      */
-    protected function get_title() {
+    public function get_title() {
         return get_string('tags', 'studentquiz');
     }
 
@@ -90,7 +87,7 @@ class tag_column extends studentquiz_column_base {
      * Get sql query join for this column
      * @return array sql query join additional
      */
-    public function get_extra_joins() {
+    public function get_extra_joins(): array {
         global $DB;
 
         // Concatenated string always containing a leading and ending ',' so a potential search for an item is always in
@@ -110,7 +107,7 @@ class tag_column extends studentquiz_column_base {
      * Get sql query join for this column
      * @return array sql query join additional
      */
-    public function get_required_fields() {
+    public function get_required_fields(): array {
         return array('tags.tagarray');
     }
 

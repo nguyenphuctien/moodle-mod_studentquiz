@@ -16,6 +16,8 @@
 
 namespace mod_studentquiz\bank;
 
+use core_question\local\bank\column_base;
+
 /**
  * A column type for the name of the question creator.
  *
@@ -23,7 +25,7 @@ namespace mod_studentquiz\bank;
  * @copyright  2017 HSR (http://www.hsr.ch)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class anonym_creator_name_column extends \core_question\bank\creator_name_column {
+class anonym_creator_name_column extends column_base {
 
     /**
      * The current user
@@ -52,10 +54,18 @@ class anonym_creator_name_column extends \core_question\bank\creator_name_column
     /** @var array Extra class names to this column. */
     protected $extraclasses = [];
 
+    public function get_name(): string {
+        return 'creatorname';
+    }
+
+    public function get_title(): string {
+        return get_string('createdby', 'question');
+    }
+
     /**
      * Loads config of current userid and can see
      */
-    public function init() {
+    public function init(): void {
         global $USER, $PAGE;
         $this->currentuserid = $USER->id;
         $this->anonymousname = get_string('creator_anonym_fullname', 'studentquiz');
@@ -79,7 +89,7 @@ class anonym_creator_name_column extends \core_question\bank\creator_name_column
      * @param object $question The row from the $question table, augmented with extra information.
      * @param string $rowclasses CSS class names that should be applied to this row of output.
      */
-    public function display($question, $rowclasses) {
+    public function display($question, $rowclasses): void {
         $this->extraclasses = [];
         if (!empty($question->sq_hidden)) {
             $this->extraclasses[] = 'dimmed_text';
@@ -95,5 +105,27 @@ class anonym_creator_name_column extends \core_question\bank\creator_name_column
      */
     public function get_extra_classes():array {
         return $this->extraclasses;
+    }
+
+    public function get_extra_joins(): array {
+        return ['uc' => 'LEFT JOIN {user} uc ON uc.id = q.createdby'];
+    }
+
+    public function get_required_fields(): array {
+        $allnames = \core_user\fields::get_name_fields();
+        $requiredfields = [];
+        foreach ($allnames as $allname) {
+            $requiredfields[] = 'uc.' . $allname . ' AS creator' . $allname;
+        }
+        $requiredfields[] = 'q.timecreated';
+        return $requiredfields;
+    }
+
+    public function is_sortable(): array {
+        return [
+            'firstname' => ['field' => 'uc.firstname', 'title' => get_string('firstname')],
+            'lastname' => ['field' => 'uc.lastname', 'title' => get_string('lastname')],
+            'timecreated' => ['field' => 'q.timecreated', 'title' => get_string('date')]
+        ];
     }
 }

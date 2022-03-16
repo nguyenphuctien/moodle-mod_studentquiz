@@ -16,6 +16,9 @@
 
 namespace mod_studentquiz\bank;
 
+use core_question\local\bank\menu_action_column_base;
+use qbank_previewquestion\helper;
+
 /**
  * A column type for preview link to mod_studentquiz_preview
  *
@@ -23,7 +26,11 @@ namespace mod_studentquiz\bank;
  * @copyright  2017 HSR (http://www.hsr.ch)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class preview_column extends \core_question\bank\preview_action_column {
+class preview_column extends menu_action_column_base {
+    /**
+     * @var string store this lang string for performance.
+     */
+    protected $strpreview;
 
     /**
      * Renderer
@@ -40,7 +47,7 @@ class preview_column extends \core_question\bank\preview_action_column {
     /**
      * Loads config of current userid and can see
      */
-    public function init() {
+    public function init(): void {
         global $PAGE;
         $this->renderer = $PAGE->get_renderer('mod_studentquiz');
         $this->context = $this->qbank->get_most_specific_context();
@@ -73,5 +80,27 @@ class preview_column extends \core_question\bank\preview_action_column {
         }
 
         return null;
+    }
+
+    public function get_name(): string {
+        return 'previewaction';
+    }
+
+    protected function get_url_icon_and_label(\stdClass $question): array {
+        if (!\question_bank::is_qtype_installed($question->qtype)) {
+            // It sometimes happens that people end up with junk questions
+            // in their question bank of a type that is no longer installed.
+            // We cannot do most actions on them, because that leads to errors.
+            return [null, null, null];
+        }
+
+        if (question_has_capability_on($question, 'use')) {
+            $context = $this->qbank->get_most_specific_context();
+            $url = helper::question_preview_url($question->id, null, null,
+                null, null, $context, $this->qbank->returnurl);
+            return [$url, 't/preview', $this->strpreview];
+        } else {
+            return [null, null, null];
+        }
     }
 }

@@ -25,6 +25,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core_question\local\bank\question_version_status;
 use mod_studentquiz\local\studentquiz_helper;
 use mod_studentquiz\utils;
 
@@ -741,6 +742,7 @@ function mod_studentquiz_get_comments_with_creators($questionid) {
 function mod_studentquiz_get_user_ranking_table($cmid, $groupid, $quantifiers, $excluderoles=array(),
         $limitfrom = 0, $limitnum = 0) {
     global $DB;
+    return [];
 
     $select = mod_studentquiz_helper_attempt_stat_select();
     $attemptstastjoins = mod_studentquiz_helper_attempt_stat_joins($cmid, $groupid, $excluderoles);
@@ -775,6 +777,7 @@ function mod_studentquiz_get_user_ranking_table($cmid, $groupid, $quantifiers, $
  */
 function mod_studentquiz_community_stats($cmid, $groupid) {
     global $DB;
+    return [];
     $select = 'SELECT '
         .' count(*) participants,'
         // Calculate points.
@@ -923,12 +926,8 @@ function mod_studentquiz_helper_attempt_stat_select() {
  * @throws coding_exception
  */
 function mod_studentquiz_helper_attempt_stat_joins($cmid, $groupid, $excluderoles = []): \core\dml\sql_join {
+    $stateready = question_version_status::QUESTION_STATUS_HIDDEN;
     $join = " FROM {studentquiz} sq
-             -- Get this Studentquiz Question category.
-             JOIN {context} con ON con.instanceid = sq.coursemodule
-                  AND con.contextlevel = ".CONTEXT_MODULE."
-             JOIN {question_categories} qc ON qc.contextid = con.id
-             -- Only enrolled users.
              JOIN {course} c ON c.id = sq.course
              JOIN {context} cctx ON cctx.instanceid = c.id
                   AND cctx.contextlevel = ".CONTEXT_COURSE."
@@ -948,11 +947,11 @@ function mod_studentquiz_helper_attempt_stat_joins($cmid, $groupid, $excluderole
         LEFT JOIN (
                     SELECT count(*) AS countq, q.createdby AS creator
                       FROM {studentquiz} sq
-                      JOIN {context} con ON con.instanceid = sq.coursemodule
-                      JOIN {question_categories} qc ON qc.contextid = con.id
-                      JOIN {question} q ON q.category = qc.id
-                      JOIN {studentquiz_question} sqq ON q.id = sqq.questionid
-                     WHERE q.hidden = 0
+                INNER JOIN {studentquiz_question} sqq ON sq.id = sqq.studentquizid
+                INNER JOIN {question_references} qr ON sqq.id = qr.itemid AND qr.component = 'mod_studentquiz'
+                                AND qr.questionarea = 'studentquiz_question'
+                INNER JOIN {question_version} ON qr
+                     WHERE q.hidden = {$stateready}
                            AND sqq.hidden = 0
                            AND q.parent = 0
                            AND sq.coursemodule = :cmid4";
@@ -1177,15 +1176,21 @@ function mod_studentquiz_ensure_studentquiz_question_record($id, $cmid, $honorpu
  */
 function mod_studentquiz_count_questions($cmid) {
     global $DB;
+    $stateready = question_version_status::QUESTION_STATUS_READY;
 
     $sql = "SELECT COUNT(*)
               FROM {studentquiz} sq
-              -- Get this StudentQuiz question category.
-              JOIN {context} con ON con.instanceid = sq.coursemodule
-              JOIN {question_categories} qc ON qc.contextid = con.id
-              -- Only enrolled users.
-              JOIN {question} q ON q.category = qc.id
-             WHERE q.hidden = 0
+              JOIN {studentquiz_question} sqq ON sqq.studentquizid = sq.id
+              JOIN {question_references} qr ON sqq.id = qr.itemid AND qr.component = 'mod_studentquiz'
+                     AND qr.questionarea = 'studentquiz_question'
+              JOIN {question_bank_entries} qbe ON qbe.id = qr.questionbankentryid
+              JOIN {question_versions} qv on qv.questionbankentryid = qbe.id
+                     AND qv.version = (SELECT MAX(v.version)
+                                         FROM {question_versions} v
+                                         JOIN {question_bank_entries} be ON be.id = v.questionbankentryid
+                                        WHERE be.id = qbe.id)
+              JOIN {question} q ON q.id = qv.questionid
+             WHERE qv.status = '$stateready'
                    AND q.parent = 0
                    AND sq.coursemodule = :cmid";
     $rs = $DB->count_records_sql($sql, array('cmid' => $cmid));
@@ -1202,6 +1207,7 @@ function mod_studentquiz_count_questions($cmid) {
  */
 function mod_studentquiz_question_stats($cmid, $groupid) {
     global $DB;
+    return [];
 
     $sql = "SELECT COUNT(*) AS questions_available,
                    AVG(rating.avg_rating) AS average_rating,

@@ -16,7 +16,7 @@
 
 namespace mod_studentquiz\bank;
 
-use core_question\bank\delete_action_column;
+use core_question\local\bank\menu_action_column_base;
 use mod_studentquiz\local\studentquiz_helper;
 
 /**
@@ -26,7 +26,7 @@ use mod_studentquiz\local\studentquiz_helper;
  * @copyright 2021 The Open University
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class sq_delete_action_column extends delete_action_column {
+class sq_delete_action_column extends menu_action_column_base {
 
     /**
      * Override method to get url and label for delete action of the studentquiz.
@@ -45,7 +45,71 @@ class sq_delete_action_column extends delete_action_column {
             return [null, null, null];
         }
 
-        return parent::get_url_icon_and_label($question);
+        if (!question_has_capability_on($question, 'edit')) {
+            return [null, null, null];
+        }
+        if ($question->status === question_version_status::QUESTION_STATUS_HIDDEN) {
+            $hiddenparams = array(
+                'unhide' => $question->id,
+                'sesskey' => sesskey());
+            $hiddenparams = array_merge($hiddenparams, $this->returnparams);
+            $url = new \moodle_url($this->deletequestionurl, $hiddenparams);
+            return [$url, 't/restore', $this->strrestore];
+        } else {
+            $deleteparams = array(
+                'deleteselected' => $question->id,
+                'q' . $question->id => 1,
+                'sesskey' => sesskey());
+            $deleteparams = array_merge($deleteparams, $this->returnparams);
+            $url = new \moodle_url($this->deletequestionurl, $deleteparams);
+            return [$url, 't/delete', $this->strdelete];
+        }
     }
 
+    /**
+     * @var string $strdelete
+     */
+    protected $strdelete;
+
+    /**
+     * @var string $strrestore
+     */
+    protected $strrestore;
+
+    /**
+     * Contains the url of the delete question page.
+     * @var \moodle_url|string
+     */
+    public $deletequestionurl;
+
+    /**
+     * Array of the return parameters.
+     * @var array $returnparams
+     */
+    protected $returnparams;
+
+    public function init(): void {
+        parent::init();
+        $this->strdelete = get_string('delete');
+        $this->strrestore = get_string('restore');
+        $this->deletequestionurl = new \moodle_url('/question/bank/deletequestion/delete.php');
+        if (!empty($this->qbank->cm->id)) {
+            $this->returnparams['cmid'] = $this->qbank->cm->id;
+        }
+        if (!empty($this->qbank->course->id)) {
+            $this->returnparams['courseid'] = $this->qbank->course->id;
+        }
+        if (!empty($this->qbank->returnurl)) {
+            $this->returnparams['returnurl'] = $this->qbank->returnurl;
+        }
+    }
+
+    public function get_name(): string {
+        return 'deleteaction';
+    }
+
+    public function get_required_fields(): array {
+        $required = parent::get_required_fields();
+        return $required;
+    }
 }

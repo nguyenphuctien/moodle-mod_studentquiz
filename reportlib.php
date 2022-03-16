@@ -123,6 +123,7 @@ class mod_studentquiz_report {
      * @return stdClass
      */
     public function get_user_stats() {
+        return [];
         if (empty($this->userrankingstats)) {
             $this->userrankingstats = mod_studentquiz_user_stats($this->get_cm_id(), $this->groupid,
                 $this->get_quantifiers(), $this->get_user_id());
