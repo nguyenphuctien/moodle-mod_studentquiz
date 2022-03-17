@@ -17,13 +17,12 @@
 namespace mod_studentquiz;
 
 use core\dml\sql_join;
-use core_courseformat\output\local\state\cm;
-use core_question\bank\search\hidden_condition;
 use external_value;
 use external_single_structure;
 use mod_studentquiz\commentarea\comment;
 use moodle_url;
 use mod_studentquiz\local\studentquiz_helper;
+use mod_studentquiz\local\studentquiz_question;
 
 /**
  * Class that holds utility functions used by mod_studentquiz.
@@ -129,16 +128,16 @@ style5 = html';
     /**
      * Get data need for comment area.
      *
-     * @param int $questionid - Question ID.
+     * @param int $studentquizquestionid - SQ Question ID.
      * @param int $cmid - Course Module ID.
-     * @return array
+     * @return studentquiz_question $studentquizquestion
      */
-    public static function get_data_for_comment_area($questionid, $cmid) {
+    public static function get_data_for_comment_area($studentquizquestionid, $cmid) {
         $cm = get_coursemodule_from_id('studentquiz', $cmid);
         $context = \context_module::instance($cm->id);
         $studentquiz = mod_studentquiz_load_studentquiz($cmid, $context->id);
-        $question = \question_bank::load_question($questionid);
-        return [$question, $cm, $context, $studentquiz];
+        $studentquizquestion = new studentquiz_question($studentquizquestionid, null, $studentquiz, $cm, $context);
+        return $studentquizquestion;
     }
 
     /**
@@ -602,13 +601,13 @@ style5 = html';
      * @param int $studentquizid Studentquiz Id.
      * @return \stdClass Studentquiz progress object.
      */
-    public static function get_studentquiz_progress($qid, $userid, $studentquizid): \stdClass {
+    public static function get_studentquiz_progress($qid, $userid, $studentquizid, $sqqid): \stdClass {
         global $DB;
 
-        $studentquizprogress = $DB->get_record('studentquiz_progress', array('questionid' => $qid,
+        $studentquizprogress = $DB->get_record('studentquiz_progress', array('studentquizquestionid' => $sqqid,
             'userid' => $userid, 'studentquizid' => $studentquizid));
         if ($studentquizprogress == false) {
-            $studentquizprogress = mod_studentquiz_get_studenquiz_progress_class($qid, $userid, $studentquizid);
+            $studentquizprogress = mod_studentquiz_get_studenquiz_progress_class($qid, $userid, $studentquizid, $sqqid);
         }
 
         return $studentquizprogress;
@@ -641,11 +640,11 @@ style5 = html';
      * @param int $timecreated The time do action.
      * @return bool|int True or new id
      */
-    public static function question_save_action(int $questionid, int $userid = null, int $state, int $timecreated = null) {
+    public static function question_save_action(int $studentquizquestionid, int $userid = null, int $state, int $timecreated = null) {
         global $DB, $USER;
 
         $data = new \stdClass();
-        $data->questionid = $questionid;
+        $data->studentquizquestionid = $studentquizquestionid;
         $data->userid = isset($userid) ? $userid : $USER->id;
         $data->state = $state;
         $data->timecreated = isset($timecreated) ? $timecreated : time();
@@ -715,10 +714,10 @@ style5 = html';
      * @param \question_definition $question Question definition object.
      * @return array State histories and Users array.
      */
-    public static function get_state_history_data($question): array {
+    public static function get_state_history_data($studentquizquestionid): array {
         global $DB;
 
-        $statehistories = $DB->get_records('studentquiz_state_history', ['questionid' => $question->id], 'timecreated, id');
+        $statehistories = $DB->get_records('studentquiz_state_history', ['studentquizquestionid' => $studentquizquestionid], 'timecreated, id');
         $users = self::get_users_change_state($statehistories);
 
         return [$statehistories, $users];
@@ -747,9 +746,9 @@ style5 = html';
      * @param int $questionid Question's id.
      * @return bool Question's visibility hide/show.
      */
-    public static function check_is_question_hidden(int $questionid): bool {
+    public static function check_is_question_hidden(int $studentquizid): bool {
         global $DB;
-        $ishidden = $DB->get_field('studentquiz_question', 'hidden', ['questionid' => $questionid]);
+        $ishidden = $DB->get_field('studentquiz_question', 'hidden', ['studentquizid' => $studentquizid]);
 
         return $ishidden == self::HIDDEN;
     }
@@ -788,8 +787,24 @@ style5 = html';
      */
     public static function get_state_question(int $questionid): int {
         global $DB;
-
-        return $DB->get_field('studentquiz_question', 'state', ['questionid' => $questionid]);
+        // Check if record exist.
+        $sql = 'SELECT sqq.state
+              FROM {studentquiz} sq
+              -- Get this StudentQuiz question.
+              JOIN {studentquiz_question} sqq ON sqq.studentquizid = sq.id
+              JOIN {question_references} qr ON qr.itemid = sqq.id
+              JOIN {question_bank_entries} qbe ON qr.questionbankentryid = qbe.id
+              JOIN {question_versions} qv ON qv.questionbankentryid = qr.questionbankentryid AND qv.version = (
+                                      SELECT MAX(version)
+                                        FROM {question_versions}
+                                       WHERE questionbankentryid = qbe.id AND status = :ready
+                                  )
+              -- Only enrolled users.
+              JOIN {question} q ON q.id = qv.questionid
+             WHERE q.id = :questionid
+    ';
+        return $DB->get_field_sql($sql, ['questionid' => $questionid,
+                'ready' => \core_question\local\bank\question_version_status::QUESTION_STATUS_READY]);
     }
 
     /**

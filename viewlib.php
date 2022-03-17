@@ -140,22 +140,13 @@ class mod_studentquiz_view {
             $this->pageurl->param('lastchanged', $lastchanged);
             // Ensure we have a studentquiz_question record.
             mod_studentquiz_ensure_studentquiz_question_record($lastchanged, $this->get_cm_id());
-            mod_studentquiz_state_notify($lastchanged, $this->course, $this->cm, 'changed');
+            mod_studentquiz_state_notify($lastchanged, $this->studentquiz->id, $this->course, $this->cm, 'changed');
             redirect(new moodle_url('/mod/studentquiz/view.php', array('id' => $this->get_cm_id())));
         }
 
         $this->qbpagevar = $pagevars;
-
         $this->questionbank = new \mod_studentquiz\question\bank\studentquiz_bank_view(
             $contexts, $thispageurl, $this->course, $this->cm, $this->studentquiz, $pagevars, $this->report);
-    }
-
-    /**
-     * Use this method to process actions on this view.
-     */
-    public function process_actions() {
-        // TODO: Process actions of questionbank could redirect!
-        $this->questionbank->process_actions();
     }
 
     /**

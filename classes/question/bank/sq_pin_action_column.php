@@ -17,7 +17,7 @@
 
 namespace mod_studentquiz\bank;
 
-use core_question\bank\menu_action_column_base;
+use core_question\local\bank\menu_action_column_base;
 use moodle_url;
 
 /**
@@ -34,7 +34,7 @@ class sq_pin_action_column extends menu_action_column_base {
     /**
      * Init method.
      */
-    protected function init() {
+    protected function init(): void {
         global $USER, $PAGE;
         $this->currentuserid = $USER->id;
         $this->renderer = $PAGE->get_renderer('mod_studentquiz');
@@ -54,8 +54,8 @@ class sq_pin_action_column extends menu_action_column_base {
      *
      * @return array Fields required.
      */
-    public function get_required_fields() {
-        return array('sqh.pinned AS pinned');
+    public function get_required_fields(): array {
+        return array('sqq.pinned AS pinned');
     }
 
 

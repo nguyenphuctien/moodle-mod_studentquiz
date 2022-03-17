@@ -23,7 +23,7 @@ namespace mod_studentquiz\bank;
  * @copyright  2017 HSR (http://www.hsr.ch)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class preview_column extends \core_question\bank\preview_action_column {
+class preview_column extends \qbank_previewquestion\preview_action_column {
 
     /**
      * Renderer
@@ -40,7 +40,7 @@ class preview_column extends \core_question\bank\preview_action_column {
     /**
      * Loads config of current userid and can see
      */
-    public function init() {
+    public function init(): void {
         global $PAGE;
         $this->renderer = $PAGE->get_renderer('mod_studentquiz');
         $this->context = $this->qbank->get_most_specific_context();

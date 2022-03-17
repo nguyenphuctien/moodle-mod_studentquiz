@@ -100,9 +100,6 @@ $PAGE->set_title($view->get_title());
 $PAGE->set_heading($COURSE->fullname);
 $PAGE->set_cm($cm, $course);
 
-// Process actions.
-$view->process_actions();
-
 // Trigger completion.
 mod_studentquiz_completion($course, $cm);
 

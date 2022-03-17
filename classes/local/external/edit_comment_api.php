@@ -88,16 +88,17 @@ class edit_comment_api extends external_api {
     public static function edit_comment($questionid, $cmid, $commentid, $message, $type) {
         global $PAGE;
         $params = self::validate_parameters(self::edit_comment_parameters(), [
-                'questionid' => $questionid,
+                'studentquizquestionid' => $questionid,
                 'cmid' => $cmid,
                 'commentid' => $commentid,
                 'message' => $message,
                 'type' => $type
         ]);
 
-        list($question, $cm, $context, $studentquiz) = utils::get_data_for_comment_area($params['questionid'], $params['cmid']);
+        $studentquizquestion = utils::get_data_for_comment_area($params['studentquizquestionid'], $params['cmid']);
+        $context = $studentquizquestion->get_context();
         self::validate_context($context);
-        $commentarea = new container($studentquiz, $question, $cm, $context, null, '', $type);
+        $commentarea = new container($studentquizquestion, null, '', $type);
 
         $comment = $commentarea->query_comment_by_id($params['commentid']);
         if (!$comment) {

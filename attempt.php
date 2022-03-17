@@ -22,6 +22,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use mod_studentquiz\local\studentquiz_question;
+
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/questionlib.php');
 require_once(__DIR__ . '/locallib.php');
@@ -81,6 +83,7 @@ $stopurl = new moodle_url('/mod/studentquiz/view.php', array('id' => $cmid));
 
 // Get Current Question.
 $question = $questionusage->get_question($slot);
+$studentquizquestion = studentquiz_question::get_studentquiz_question_from_question($question, $studentquiz, $cm, $context);
 // Navigatable?
 $questionscount = count($questionids);
 $hasnext = $slot < $questionscount;
@@ -116,12 +119,12 @@ if (data_submitted()) {
 
     // If the question is finished after process but was not before, save the attempt to the progress.
     if ($isfinishedafter && !$isfinishedbefore) {
-        $q = $questionusage->get_question($slot);
-
-        $studentquizprogress = $DB->get_record('studentquiz_progress', array('questionid' => $q->id,
-            'userid' => $userid, 'studentquizid' => $studentquiz->id));
+        $studentquizprogress = $DB->get_record('studentquiz_progress',
+            ['studentquizquestionid' => $studentquizquestion->get_id(),
+            'userid' => $userid, 'studentquizid' => $studentquiz->id]);
         if ($studentquizprogress == false) {
-            $studentquizprogress = mod_studentquiz_get_studenquiz_progress_class($q->id, $userid, $studentquiz->id);
+            $studentquizprogress = mod_studentquiz_get_studenquiz_progress_class($question->id, $userid, $studentquiz->id,
+                $studentquizquestion->get_id());
         }
 
         // Any newly finished attempt is wrong when it wasn't right.
@@ -235,9 +238,9 @@ $orders  = [
 
 if ($isanswered) {
     // Get output the rating.
-    $ratinghtml = $output->render_rate($question->id, $studentquiz->forcerating);
+    $ratinghtml = $output->render_rate($studentquizquestion, $studentquiz->forcerating);
     // Get output the comments.
-    $commenthtml = $output->render_comment($cmid, $question->id, $userid, $highlight);
+    $commenthtml = $output->render_comment($studentquizquestion, $userid, $highlight);
     // If force rating and commenting, then it will above navigation.
     if ($studentquiz->forcerating && $studentquiz->forcecommenting) {
          $orders = array_merge([

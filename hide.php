@@ -15,12 +15,12 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Ajax requests to this script saves the ratings and comments.
+ * Hide question in SQ
  *
  * Require POST params:
- * "save" can be "rate" or "comment" (save type),
  * "questionid" is necessary for every request,
- * "rate" is necessary if the save type is "rate"
+ * "courseid" is necessary for every request,
+ * "sesskey" is necessary for every request
  * "text" is necessary if the save type is "comment"
  *
  * @package    mod_studentquiz
@@ -28,15 +28,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define('AJAX_SCRIPT', true);
-
 require_once(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/locallib.php');
 
 // Get parameters.
-$cmid = optional_param('cmid', 0, PARAM_INT);
-$studentquizquestionid = required_param('studentquizquestionid', PARAM_INT);
-$save = required_param('save', PARAM_NOTAGS);
+$questionid = required_param('questionid', PARAM_INT);
+$courseid = required_param('courseid', PARAM_INT);
 
 // Load course and course module requested.
 if ($cmid) {
@@ -56,19 +53,14 @@ require_sesskey();
 
 $data = new \stdClass();
 $data->userid = $USER->id;
-$data->studentquizquestionid = $studentquizquestionid;
+$data->questionid = $questionid;
 
-switch($save) {
-    case 'rate':
-        $data->rate = required_param('rate', PARAM_INT);
+question_require_capability_on($questionid, 'edit');
 
-        // Rating is only valid if the rate is in or between 1 and 5.
-        if ($data->rate < 1 || $data->rate > 5) {
-            throw new moodle_exception("invalidrate");
-        }
+$DB->set_field('studentquiz_question', 'hidden', 1, ['questionid' => $hide]);
 
-        mod_studentquiz_save_rate($data);
-        break;
-}
-
-header('Content-Type: text/html; charset=utf-8');
+\mod_studentquiz\utils::question_save_action($hide, null, studentquiz_helper::STATE_HIDE);
+mod_studentquiz_state_notify($questionid, $this->course, $this->cm, 'hidden');
+// Purge these questions from the cache.
+\question_bank::notify_question_edited($hide);
+redirect($this->baseurl);

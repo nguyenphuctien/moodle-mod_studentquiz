@@ -86,15 +86,16 @@ class delete_comment_api extends external_api {
 
         // Validate web service's parameters.
         $params = self::validate_parameters(self::delete_comment_parameters(), array(
-                'questionid' => $questionid,
+                'studentquizquestionid' => $questionid,
                 'cmid' => $cmid,
                 'commentid' => $commentid,
                 'type' => $type
         ));
 
-        list($question, $cm, $context, $studentquiz) = utils::get_data_for_comment_area($params['questionid'], $params['cmid']);
+        $studentquizquestion = utils::get_data_for_comment_area($params['studentquizquestionid'], $params['cmid']);
+        $context = $studentquizquestion->get_context();
         self::validate_context($context);
-        $commentarea = new container($studentquiz, $question, $cm, $context, null, '', $type);
+        $commentarea = new container($studentquizquestion, null, '', $type);
 
         $comment = $commentarea->query_comment_by_id($params['commentid']);
 

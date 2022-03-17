@@ -436,10 +436,6 @@ function studentquiz_extend_settings_navigation(settings_navigation $settingsnav
     }
 
     // Add the navigation items.
-    $studentquiznode->add_node(navigation_node::create(get_string('modulename', 'studentquiz'),
-        new moodle_url('/mod/studentquiz/view.php', array('id' => $PAGE->cm->id)),
-        navigation_node::TYPE_SETTING, null, 'mod_studentquiz_dashboard',
-        new pix_icon('i/cohort', '')), $beforekey);
     $studentquiznode->add_node(navigation_node::create(get_string('reportquiz_stats_title', 'studentquiz'),
         new moodle_url('/mod/studentquiz/reportstat.php', array('id' => $PAGE->cm->id)),
         navigation_node::TYPE_SETTING, null, 'mod_studentquiz_statistics',
@@ -497,7 +493,7 @@ function mod_studentquiz_output_fragment_commentform($params) {
     $cancelbutton = isset($params['cancelbutton']) ? $params['cancelbutton'] : false;
     // Assign data to edit post form, this will also check for session key.
     $mform = new \mod_studentquiz\commentarea\form\comment_form([
-            'questionid' => $params['questionid'],
+            'studentquizquestionid' => $params['studentquizquestionid'],
             'cmid' => $params['cmid'],
             'replyto' => $params['replyto'],
             'forcecommenting' => $params['forcecommenting'],
@@ -519,8 +515,8 @@ function mod_studentquiz_output_fragment_commenteditform($params) {
     }
     $cancelbutton = isset($params['cancelbutton']) ? $params['cancelbutton'] : false;
 
-    list($question, $cm, $context, $studentquiz) = utils::get_data_for_comment_area($params['questionid'], $params['cmid']);
-    $commentarea = new container($studentquiz, $question, $cm, $context, null, '', $params['type']);
+    $studentquizquestion = utils::get_data_for_comment_area($params['studentquizquestionid'], $params['cmid']);
+    $commentarea = new container($studentquizquestion, null, '', $params['type']);
     $comment = $commentarea->query_comment_by_id($params['commentid']);
     if (!$comment) {
         throw new moodle_exception('invalidcomment', 'studentquiz');

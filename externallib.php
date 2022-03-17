@@ -67,7 +67,7 @@ class mod_studentquiz_external extends external_api {
      * @throws dml_exception
      */
     public static function change_question_state($courseid, $cmid, $questionid, $state) {
-        global $PAGE, $USER;
+        global $PAGE;
 
         if ($state == studentquiz_helper::STATE_HIDE) {
             $type = 'hidden';
@@ -91,26 +91,29 @@ class mod_studentquiz_external extends external_api {
                 return $result;
             }
         }
-
-        mod_studentquiz_change_state_visibility($questionid, $type, $value);
-        utils::question_save_action($questionid, null, $state);
+        $contextmodule = context_module::instance($cmid);
+        $cm = get_coursemodule_from_id('studentquiz', $cmid);
+        $studentquiz = mod_studentquiz_load_studentquiz($cmid, $contextmodule->id);
+        $question = question_bank::load_question($questionid);
+        $studentquizquestion = new \mod_studentquiz\local\studentquiz_question($studentquiz, $question, $cm, $context);
+        mod_studentquiz_change_state_visibility($studentquiz->id, $type, $value);
+        $studentquizquestionid = $studentquizquestion->get_studentquiz_question()->id;
+        utils::question_save_action($studentquizquestionid, null, $state);
 
         // Additionally always unhide the question when it got approved.
-        if ($state == studentquiz_helper::STATE_APPROVED && utils::check_is_question_hidden($questionid)) {
-            mod_studentquiz_change_state_visibility($questionid, 'hidden', 0);
-            utils::question_save_action($questionid, get_admin()->id, studentquiz_helper::STATE_SHOW);
+        if ($state == studentquiz_helper::STATE_APPROVED && utils::check_is_question_hidden($cmid)) {
+            mod_studentquiz_change_state_visibility($studentquiz->id, 'hidden', 0);
+            utils::question_save_action($studentquizquestionid, get_admin()->id, studentquiz_helper::STATE_SHOW);
         }
 
         $course = get_course($courseid);
-        $cm = get_coursemodule_from_id('studentquiz', $cmid);
-        $context = context_module::instance($cmid);
-        $PAGE->set_context($context);
+        $PAGE->set_context($contextmodule);
         if (!$canmanage) {
             if ($state == studentquiz_helper::STATE_REVIEWABLE) {
                 mod_studentquiz_notify_reviewable_question($questionid, $course, $cm);
             }
         } else {
-            mod_studentquiz_state_notify($questionid, $course, $cm, $type);
+            mod_studentquiz_state_notify($questionid, $studentquizquestion->get_studentquiz()->id, $course, $cm, $type);
         }
         $result = [];
         $result['status'] = get_string('api_state_change_success_title', 'studentquiz');

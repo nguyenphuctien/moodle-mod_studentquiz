@@ -54,14 +54,14 @@ $context = context_module::instance($cm->id);
 // Check to see if any roles setup has been changed since we last synced the capabilities.
 \mod_studentquiz\access\context_override::ensure_permissions_are_right($context);
 $studentquiz = mod_studentquiz_load_studentquiz($cm->id, $context->id);
+$question = question_bank::load_question($questionid);
 
 // Comment access check.
-$question = question_bank::load_question($questionid);
 if (!$question) {
     throw new moodle_exception("invalidcommenthistorypermission");
 }
-
-$container = new container($studentquiz, $question, $cm, $context, $USER);
+$studentquizquestion = new \mod_studentquiz\local\studentquiz_question($studentquiz, $question, $cm, $context);
+$container = new container($studentquizquestion, $USER);
 if (!$container->can_view_username() && !$USER->id == $comment->userid) {
     throw new moodle_exception("invalidcommenthistorypermission");
 }
