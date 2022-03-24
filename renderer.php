@@ -1222,11 +1222,14 @@ EOT;
             'returnurl' => $this->page->url]);
         $movetourl = new \moodle_url('/question/bank/bulkmove/move.php', ['courseid' => $COURSE->id,
             'returnurl' => $this->page->url]);
+        $changestateurl = new \moodle_url('/mod/studentquiz/changestate.php', ['courseid' => $COURSE->id,
+            'returnurl' => $this->page->url]);
         if ($hasquestionincategory) {
             $params = [
                 'class' => 'btn btn-primary form-submit',
                 'type' => 'submit',
                 'name' => 'startquiz',
+                'formmethod' => 'get',
                 'value' => get_string('start_quiz_button', 'studentquiz'),
                 'disabled' => true
             ];
@@ -1245,6 +1248,7 @@ EOT;
                     'class' => 'btn btn-secondary',
                     'type' => 'submit',
                     'name' => 'approveselected',
+                    'formaction' => $changestateurl,
                     'value' => get_string('state_toggle', 'studentquiz'),
                     'form' => 'questionsubmit',
                     'data-action' => 'toggle',
@@ -1546,25 +1550,6 @@ EOT;
  * Attempt renderer.
  */
 class mod_studentquiz_attempt_renderer extends mod_studentquiz_renderer {
-    /**
-     * Generate some HTML (which may be blank) that appears in the outcome area,
-     * after the question-type generated output.
-     *
-     * For example, the CBM models use this to display an explanation of the score
-     * adjustment that was made based on the certainty selected.
-     *
-     * @param question_definition $question the current question.
-     * @param question_display_options $options controls what should and should not be displayed.
-     * @param int $cmid
-     * @param int $userid viewing user id
-     * @return string HTML fragment
-     */
-    public function feedback(question_definition $question,
-                             question_display_options $options, $cmid,
-                             $userid) {
-        global $COURSE;
-        return $this->render_state_choice($question, $COURSE->id, $cmid);
-    }
 
     /**
      * Generate some HTML to display rating options
@@ -1729,14 +1714,13 @@ class mod_studentquiz_attempt_renderer extends mod_studentquiz_renderer {
     /**
      * Render state choice for specific question
      *
-     * @param question_definition $question The current question.
-     * @param int $courseid
-     * @param int $cmid
+     * @param studentquiz_question $studentquizquestion The studentquiz question object.
      * @return string HTML state choice select box
      */
-    public function render_state_choice(\question_definition $question, int $courseid, int $cmid) {
-        global $USER;
+    public function render_state_choice(studentquiz_question $studentquizquestion) {
+        global $USER, $COURSE;
 
+        $question = $studentquizquestion->get_question();
         $output = '';
         if ($USER->id != $question->createdby && !has_capability('mod/studentquiz:changestate', $this->page->context)) {
             return;
@@ -1758,7 +1742,7 @@ class mod_studentquiz_attempt_renderer extends mod_studentquiz_renderer {
             ];
         }
 
-        $currentstate = utils::get_state_question($question->id);
+        $currentstate = $studentquizquestion->get_state();
         $statenames = studentquiz_helper::get_state_descriptions();
         $output .= html_writer::start_span('change-question-state');
         $output .= html_writer::div(get_string('changecurrentstate', 'studentquiz',
@@ -1767,7 +1751,7 @@ class mod_studentquiz_attempt_renderer extends mod_studentquiz_renderer {
         $output .= html_writer::select($states, 'statetype');
         $output .= html_writer::tag('button', get_string('state_toggle', 'studentquiz'),
                 ['type' => 'button', 'class' => 'btn btn-secondary', 'id' => 'change_state', 'data-questionid' => $question->id,
-                        'data-courseid' => $courseid, 'data-cmid' => $cmid, 'disabled' => 'disabled',
+                        'data-courseid' => $COURSE->id, 'data-cmid' => $studentquizquestion->get_cm()->id, 'disabled' => 'disabled',
                         'data-currentstate' => $currentstate]);
         $output .= html_writer::end_span();
         $this->page->requires->js_call_amd('mod_studentquiz/state_change', 'init');

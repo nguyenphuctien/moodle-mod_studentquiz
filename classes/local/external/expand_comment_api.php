@@ -83,10 +83,10 @@ class expand_comment_api extends external_api {
      * @param int $type - Comment type.
      * @return mixed
      */
-    public static function expand_comment($questionid, $cmid, $commentid, $type) {
+    public static function expand_comment($studentquizquestionid, $cmid, $commentid, $type) {
 
         $params = self::validate_parameters(self::expand_comment_parameters(), [
-                'studentquizquestionid' => $questionid,
+                'studentquizquestionid' => $studentquizquestionid,
                 'cmid' => $cmid,
                 'commentid' => $commentid,
                 'type' => $type

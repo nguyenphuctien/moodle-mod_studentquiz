@@ -22,6 +22,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use mod_studentquiz\local\studentquiz_question;
+
 require_once(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/viewlib.php');
 
@@ -148,8 +150,8 @@ if ($question) {
     $PAGE->requires->strings_for_js(array(
         'closepreview',
     ), 'question');
-
-    echo $output->feedback($question, $options, $cmid, $USER->id);
+    $studentquizquestion = studentquiz_question::get_studentquiz_question_from_question($question, $studentquiz, $module);
+    echo $output->render_state_choice($studentquizquestion);
 
     echo html_writer::end_tag('form');
 

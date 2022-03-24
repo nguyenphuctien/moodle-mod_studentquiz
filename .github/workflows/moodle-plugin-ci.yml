@@ -37,7 +37,7 @@ jobs:
         # - each database at least once
         include:
           - {php: '7.3', moodle-branch: master, database: pgsql}
-          - {php: '8.4', moodle-branch: master, database: mariadb}
+          - {php: '7.4', moodle-branch: master, database: mariadb}
 
     steps:
       - name: Check out repository code

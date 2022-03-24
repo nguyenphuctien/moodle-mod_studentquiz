@@ -24,6 +24,7 @@
  */
 
 use mod_studentquiz\local\studentquiz_helper;
+use mod_studentquiz\local\studentquiz_question;
 use mod_studentquiz\utils;
 
 defined('MOODLE_INTERNAL') || die();
@@ -83,27 +84,28 @@ class mod_studentquiz_external extends external_api {
         // Student can not delete the question when the question is in approved state.
         $context = \context_course::instance($courseid);
         $canmanage = has_capability('mod/studentquiz:manage', $context);
+        $contextmodule = context_module::instance($cmid);
+        $cm = get_coursemodule_from_id('studentquiz', $cmid);
+        $studentquiz = mod_studentquiz_load_studentquiz($cmid, $contextmodule->id);
+        $question = question_bank::load_question($questionid);
+        $studentquizquestion = studentquiz_question::get_studentquiz_question_from_question($question, $studentquiz, $cm,
+            $contextmodule);
+        $studentquizquestion->change_state_visibility($studentquiz->id, $type, $value);
+        $studentquizquestion->save_action($state);
+
         if (!$canmanage && $state == studentquiz_helper::STATE_DELETE) {
-            if (utils::get_state_question($questionid) == studentquiz_helper::STATE_APPROVED) {
+            if ($studentquizquestion->get_state() == studentquiz_helper::STATE_APPROVED) {
                 $result = [];
                 $result['status'] = get_string('api_state_change_error_title', 'studentquiz');
                 $result['message'] = get_string('api_state_change_error_content', 'studentquiz');
                 return $result;
             }
         }
-        $contextmodule = context_module::instance($cmid);
-        $cm = get_coursemodule_from_id('studentquiz', $cmid);
-        $studentquiz = mod_studentquiz_load_studentquiz($cmid, $contextmodule->id);
-        $question = question_bank::load_question($questionid);
-        $studentquizquestion = new \mod_studentquiz\local\studentquiz_question($studentquiz, $question, $cm, $context);
-        mod_studentquiz_change_state_visibility($studentquiz->id, $type, $value);
-        $studentquizquestionid = $studentquizquestion->get_studentquiz_question()->id;
-        utils::question_save_action($studentquizquestionid, null, $state);
 
         // Additionally always unhide the question when it got approved.
         if ($state == studentquiz_helper::STATE_APPROVED && utils::check_is_question_hidden($cmid)) {
-            mod_studentquiz_change_state_visibility($studentquiz->id, 'hidden', 0);
-            utils::question_save_action($studentquizquestionid, get_admin()->id, studentquiz_helper::STATE_SHOW);
+            $studentquizquestion->change_state_visibility( 'hidden', 0);
+            $studentquizquestion->save_action(studentquiz_helper::STATE_SHOW, get_admin()->id);
         }
 
         $course = get_course($courseid);

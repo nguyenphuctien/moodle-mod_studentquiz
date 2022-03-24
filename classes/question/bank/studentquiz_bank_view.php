@@ -396,7 +396,7 @@ class studentquiz_bank_view extends \core_question\local\bank\view {
         $category = $this->get_current_category($categoryandcontext);
         list($categoryid, $contextid) = explode(',', $categoryandcontext);
         $catcontext = \context::instance_by_id($contextid);
-        $output .= \html_writer::start_tag('form', ['action' => $pageurl, 'method' => 'get', 'id' => 'questionsubmit']);
+        $output .= \html_writer::start_tag('form', ['action' => $pageurl, 'method' => 'post', 'id' => 'questionsubmit']);
         $output .= \html_writer::start_tag('fieldset', array('class' => 'invisiblefieldset', 'style' => 'display:block;'));
 
         $output .= $this->renderer->render_hidden_field($this->cm->id, $this->displayedquestionsids, $this->baseurl);

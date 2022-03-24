@@ -18,6 +18,7 @@ namespace mod_studentquiz\local;
 
 use question_definition;
 use stdClass;
+use mod_studentquiz\utils;
 
 /**
  * Container class for studentquiz question.
@@ -111,6 +112,24 @@ class studentquiz_question {
     }
 
     /**
+     * Get studentquiz question state.
+     *
+     * @return int Studentquiz question Id
+     */
+    public function get_state(): int {
+        return $this->data->state;
+    }
+
+    /**
+     * Get current visibility of question.
+     *
+     * @return bool Question's visibility hide/show.
+     */
+    public function is_hidden(): bool {
+        return  ($this->data->state == utils::HIDDEN);
+    }
+
+    /**
      * Get studentquiz question object from questionid.
      * We should get the studentquiz_question.id first then get the object because the question may not the latest version.
      *
@@ -121,7 +140,7 @@ class studentquiz_question {
      * @return studentquiz_question Studentquiz question object.
      * @throws \dml_exception
      */
-    public static function get_studentquiz_question_from_question(question_definition $question, stdClass $studentquiz =  null,
+    public static function get_studentquiz_question_from_question($question, stdClass $studentquiz =  null,
             $cm =  null, $context = null): studentquiz_question {
         global $DB;
         $sql = 'SELECT sqq.id
@@ -162,5 +181,37 @@ class studentquiz_question {
         $record = $DB->get_record_sql($sql, ['studentquizquestionid' => $this->id,
             'ready' => \core_question\local\bank\question_version_status::QUESTION_STATUS_READY], MUST_EXIST);
         $this->data = $record;
+    }
+
+    /**
+     * Change a question state of visibility.
+     *
+     * @param $type int Type.
+     * @param $value int Value
+     * @throws \dml_exception
+     */
+    function change_state_visibility($type, $value) {
+        global $DB;
+        $DB->set_field('studentquiz_question', $type, $value, ['studentquizid' => $this->get_id()]);
+    }
+
+    /**
+     * Saving the action change state.
+     *
+     * @param int $state The state of the question in the StudentQuiz.
+     * @param int|null $userid
+     * @param int $timecreated The time do action.
+     * @return bool|int True or new id
+     */
+    public function save_action( int $state, int $userid = null, int $timecreated = null) {
+        global $DB, $USER;
+
+        $data = new \stdClass();
+        $data->studentquizquestionid = $this->get_id();
+        $data->userid = isset($userid) ? $userid : $USER->id;
+        $data->state = $state;
+        $data->timecreated = isset($timecreated) ? $timecreated : time();
+
+        return $DB->insert_record('studentquiz_state_history', $data);
     }
 }

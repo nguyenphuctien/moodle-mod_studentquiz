@@ -99,21 +99,6 @@ function mod_studentquiz_get_studenquiz_progress_class($questionid, $userid, $st
 }
 
 /**
- * Change a question state of visibility
- *
- * @param int $studentquizid Id of studentquiz
- * @param string $type Type of change
- * @param int $value Value of change
- * @throws Throwable
- * @throws coding_exception
- * @throws dml_exception
- */
-function mod_studentquiz_change_state_visibility($studentquizid, $type, $value) {
-    global $DB;
-    $DB->set_field('studentquiz_question', $type, $value, ['studentquizid' => $studentquizid]);
-}
-
-/**
  * Migrates all studentquizes that are not yet aggregated to the aggreated state.
  *
  * If it fails, try the following:
@@ -338,7 +323,6 @@ function mod_studentquiz_prepare_notify_data($question, $recepient, $actor, $cou
 function mod_studentquiz_state_notify($questionid, $studentquizid, $course, $module, $type) {
     global $DB;
     if ($type == 'state') {
-        $state = $DB->get_field('studentquiz_question', $type, ['studentquizid' => $studentquizid]);
         $states = [
                 studentquiz_helper::STATE_DISAPPROVED => 'disapproved',
                 studentquiz_helper::STATE_APPROVED => 'approved',

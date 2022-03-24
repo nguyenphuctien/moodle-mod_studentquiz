@@ -741,19 +741,6 @@ style5 = html';
     }
 
     /**
-     * Get current visibility of question.
-     *
-     * @param int $questionid Question's id.
-     * @return bool Question's visibility hide/show.
-     */
-    public static function check_is_question_hidden(int $studentquizid): bool {
-        global $DB;
-        $ishidden = $DB->get_field('studentquiz_question', 'hidden', ['studentquizid' => $studentquizid]);
-
-        return $ishidden == self::HIDDEN;
-    }
-
-    /**
      * Return 'comment' or 'comments' base on the $numberofcomments.
      *
      * @param int $numberofcomments The studentquiz progress object.
@@ -775,23 +762,9 @@ style5 = html';
      */
     public static function get_states(array $questionids): array {
         global $DB;
-
-        return $DB->get_records_list('studentquiz_question', 'questionid', $questionids, '', 'questionid, state');
-    }
-
-    /**
-     * Get state of question.
-     *
-     * @param int $questionid Question's id.
-     * @return int State of question.
-     */
-    public static function get_state_question(int $questionid): int {
-        global $DB;
-        // Check if record exist.
-        $sql = 'SELECT sqq.state
-              FROM {studentquiz} sq
-              -- Get this StudentQuiz question.
-              JOIN {studentquiz_question} sqq ON sqq.studentquizid = sq.id
+        list ($conditionquestionids, $params) = $DB->get_in_or_equal($questionids, SQL_PARAMS_NAMED);
+        $sql = "SELECT q.id, sqq.state
+              FROM {studentquiz_question} sqq
               JOIN {question_references} qr ON qr.itemid = sqq.id
               JOIN {question_bank_entries} qbe ON qr.questionbankentryid = qbe.id
               JOIN {question_versions} qv ON qv.questionbankentryid = qr.questionbankentryid AND qv.version = (
@@ -799,12 +772,10 @@ style5 = html';
                                         FROM {question_versions}
                                        WHERE questionbankentryid = qbe.id AND status = :ready
                                   )
-              -- Only enrolled users.
               JOIN {question} q ON q.id = qv.questionid
-             WHERE q.id = :questionid
-    ';
-        return $DB->get_field_sql($sql, ['questionid' => $questionid,
-                'ready' => \core_question\local\bank\question_version_status::QUESTION_STATUS_READY]);
+             WHERE q.id $conditionquestionids";
+        $params['ready'] = \core_question\local\bank\question_version_status::QUESTION_STATUS_READY;
+        return $DB->get_records_sql($sql, $params);
     }
 
     /**
