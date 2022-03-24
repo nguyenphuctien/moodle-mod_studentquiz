@@ -35,7 +35,7 @@ class studentquiz_question {
     /** @var question_definition $question - Question class. */
     private $question;
 
-    /** @var  $cm - Module. */
+    /** @var stdClass $cm - Module. */
     private $cm;
 
     /** @var stdClass $context - Context. */
@@ -76,11 +76,15 @@ class studentquiz_question {
     }
 
     /**
-     * Get course module.
+     * Get studentquiz.
      *
      * @return stdClass
      */
     public function get_studentquiz() {
+        if (!isset($this->studentquiz)) {
+            $this->studentquiz = mod_studentquiz_load_studentquiz($this->data->cmid, $this->get_context());
+        }
+
         return $this->studentquiz;
     }
 
@@ -90,6 +94,10 @@ class studentquiz_question {
      * @return stdClass
      */
     public function get_cm(): stdClass {
+        if (!isset($this->cm)) {
+            get_coursemodule_from_id('studentquiz', $this->data->cmid);
+        }
+
         return $this->cm;
     }
 
@@ -99,6 +107,10 @@ class studentquiz_question {
      * @return stdClass
      */
     public function get_context(): stdClass {
+        if (!isset($this->context)) {
+            $this->context = \context_module::instance($this->data->cmid);
+        }
+
         return $this->context;
     }
 
@@ -164,10 +176,13 @@ class studentquiz_question {
      */
     private function load_studentquiz_question(): void {
         global $DB;
-        $sql = 'SELECT sqq.id, sqq.studentquizid, sqq.state, sqq.hidden, sqq.pinned, sqq.groupid, q.id questionid,
-                            qr.id qrid, qbe.id questionbankentryid, qv.version questionversion, qv.status questionstatus,
+        $sql = 'SELECT sqq.id, sqq.studentquizid, sqq.state, sqq.hidden, sqq.pinned, sqq.groupid, 
+                            q.id questionid, qv.version questionversion, qv.status questionstatus,
+                            qr.id questionreferenceid, qbe.id questionbankentryid,
+                            sq.course courseid, sq.coursemodule cmid,
                             q.createdby
                   FROM {studentquiz_question} sqq
+             LEFT JOIN {studentquiz} sq ON sq.id = sqq.studentquizid
              LEFT JOIN {question_references} qr ON qr.itemid = sqq.id AND qr.component = \'mod_studentquiz\'
                             AND qr.questionarea = \'studentquiz_question\'
              LEFT JOIN {question_bank_entries} qbe ON qr.questionbankentryid = qbe.id

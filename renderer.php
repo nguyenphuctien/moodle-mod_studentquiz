@@ -1664,17 +1664,18 @@ class mod_studentquiz_attempt_renderer extends mod_studentquiz_renderer {
      * Generate html for Private comments, public comments and state history tabs.
      *
      * @param int $cmid Course module id
-     * @param question_definition $question
+     * @param studentquiz_question $studentquizquestion Studentquiz question object.
      * @param int $userid User id.
      * @param int $highlight Highlight comment ID.
      * @param bool $privatecommenting Does the studentquiz enable private commenting?
      * @return string HTML fragment.
      */
-    public function render_comment_nav_tabs($cmid, $question, $userid, $highlight = 0, $privatecommenting = false) {
+    public function render_comment_nav_tabs(studentquiz_question $studentquizquestion, $userid, $highlight = 0, $privatecommenting = false) {
         $renderer = $this->page->get_renderer('mod_studentquiz', 'comment');
         $tabs = [];
-        $studentquizquestion = utils::get_data_for_comment_area($question->id, $cmid);
-        if (utils::can_view_private_comment($cmid, $question, $privatecommenting)) {
+        $question = $studentquizquestion->get_question();
+        $cm = $studentquizquestion->get_cm();
+        if (utils::can_view_private_comment($cm->id, $question, $privatecommenting)) {
             $privatecommentstab = $renderer->render_comment_area($studentquizquestion, $userid, $highlight,
                 utils::COMMENT_TYPE_PRIVATE);
             $tabs[] = [
@@ -1693,9 +1694,9 @@ class mod_studentquiz_attempt_renderer extends mod_studentquiz_renderer {
             'content' => $publiccommentstab
         ];
 
-        if (utils::can_view_state_history($cmid, $question)) {
+        if (utils::can_view_state_history($cm->id, $question)) {
             $statehistoryrenderer = $this->page->get_renderer('mod_studentquiz', 'state_history');
-            $statehistorytab = $statehistoryrenderer->state_history_table($studentquizquestion->get_studentquiz_question()->id);
+            $statehistorytab = $statehistoryrenderer->state_history_table($studentquizquestion->get_id());
             $tabs[] = [
                 'id' => 'state_history-tab',
                 'name' => get_string('history', 'mod_studentquiz'),

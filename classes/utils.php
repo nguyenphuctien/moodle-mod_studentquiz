@@ -133,10 +133,7 @@ style5 = html';
      * @return studentquiz_question $studentquizquestion
      */
     public static function get_data_for_comment_area($studentquizquestionid, $cmid) {
-        $cm = get_coursemodule_from_id('studentquiz', $cmid);
-        $context = \context_module::instance($cm->id);
-        $studentquiz = mod_studentquiz_load_studentquiz($cmid, $context->id);
-        $studentquizquestion = new studentquiz_question($studentquizquestionid, null, $studentquiz, $cm, $context);
+        $studentquizquestion = new studentquiz_question($studentquizquestionid);
         return $studentquizquestion;
     }
 
